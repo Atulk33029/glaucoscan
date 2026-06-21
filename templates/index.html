@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>GlaucoScan v2 — Fundus Analysis System</title>
+<style>
+:root{
+  --bg:#0b0f1a;--surface:#111827;--card:#1a2236;--border:#2a3650;
+  --accent:#3b82f6;--accent2:#6366f1;--text:#e2e8f0;--muted:#64748b;
+  --success:#22c55e;--warn:#f59e0b;--danger:#ef4444;--radius:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Header */
+header{background:linear-gradient(135deg,#0b1220,#0f1e3a);border-bottom:1px solid var(--border);
+  padding:16px 40px;display:flex;align-items:center;gap:14px}
+.logo{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px}
+header h1{font-size:20px;font-weight:700}
+header h1 span{color:var(--accent)}
+.hbadge{margin-left:auto;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);
+  color:var(--accent);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px}
+
+/* Layout */
+main{max-width:1100px;margin:0 auto;padding:40px 20px 80px}
+.hero{text-align:center;margin-bottom:40px}
+.hero h2{font-size:clamp(22px,4vw,36px);font-weight:700;line-height:1.2;
+  background:linear-gradient(135deg,#e2e8f0,#93c5fd);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px}
+.hero p{color:var(--muted);font-size:15px;max-width:560px;margin:0 auto;line-height:1.7}
+
+/* Pipeline steps */
+.pipeline{display:flex;gap:0;margin-bottom:36px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.pipe-step{flex:1;padding:12px 8px;text-align:center;position:relative;border-right:1px solid var(--border)}
+.pipe-step:last-child{border-right:none}
+.pipe-step .num{width:24px;height:24px;border-radius:50%;background:var(--accent);
+  color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;margin:0 auto 6px}
+.pipe-step .label{font-size:10px;color:var(--muted);font-weight:500;line-height:1.3}
+.pipe-step .tag{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;
+  margin-top:4px;display:inline-block}
+.tag-novel{background:rgba(99,102,241,.2);color:#a5b4fc}
+.tag-dl{background:rgba(59,130,246,.2);color:#93c5fd}
+
+/* Upload */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);background:var(--card);
+  padding:44px 24px;text-align:center;cursor:pointer;transition:all .25s;position:relative;margin-bottom:24px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(59,130,246,.06)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone .icon{font-size:44px;margin-bottom:14px}
+.upload-zone h3{font-size:17px;font-weight:600;margin-bottom:6px}
+.upload-zone p{color:var(--muted);font-size:13px}
+.fmts{display:inline-flex;gap:5px;margin-top:10px}
+.fmts span{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);
+  color:#a5b4fc;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px}
+
+#preview-wrap{display:none;margin-bottom:20px;text-align:center}
+#preview-img{max-height:180px;border-radius:10px;border:2px solid var(--border)}
+#preview-name{color:var(--muted);font-size:12px;margin-top:6px}
+
+#analyze-btn{display:block;width:100%;max-width:300px;margin:0 auto 36px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+  border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:600;
+  cursor:pointer;transition:all .2s}
+#analyze-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.35)}
+#analyze-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Progress */
+#progress-wrap{display:none;margin-bottom:36px}
+.prog-bg{background:var(--surface);border-radius:8px;height:6px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s;width:0%}
+.steps{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.step .dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s}
+.step.active .dot{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.step.done .dot{background:var(--success)}
+
+#error-box{display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);
+  color:#fca5a5;padding:12px 18px;border-radius:10px;margin-bottom:20px;font-size:14px}
+
+/* Results */
+#results{display:none}
+.sec-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);
+  text-transform:uppercase;margin-bottom:14px;margin-top:28px}
+
+/* Image strip */
+.img-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:8px}
+.img-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.img-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.img-foot{padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
+.img-foot span{font-size:13px;font-weight:600}
+.itag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
+.t-raw{background:rgba(100,116,139,.2);color:var(--muted)}
+.t-cls{background:rgba(99,102,241,.15);color:#a5b4fc}
+.t-dl{background:rgba(59,130,246,.15);color:#93c5fd}
+
+/* Risk card */
+.risk-card{border-radius:var(--radius);padding:24px 28px;border:2px solid;
+  margin:20px 0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.risk-icon{font-size:48px;line-height:1}
+.risk-info{flex:1;min-width:200px}
+.risk-info h3{font-size:22px;font-weight:700;margin-bottom:4px}
+.risk-info p{color:var(--muted);font-size:13px;line-height:1.6}
+.risk-right{display:flex;flex-direction:column;align-items:center;gap:10px}
+.risk-prob .num{font-size:44px;font-weight:700;line-height:1;text-align:center}
+.risk-prob .lbl{font-size:11px;color:var(--muted);text-align:center}
+
+/* PDF button */
+.pdf-btn{display:flex;align-items:center;gap:8px;background:rgba(34,197,94,.1);
+  border:1px solid rgba(34,197,94,.4);color:var(--success);
+  padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;
+  cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap}
+.pdf-btn:hover{background:rgba(34,197,94,.2);transform:translateY(-1px)}
+.pdf-btn svg{width:16px;height:16px;flex-shrink:0}
+
+/* Bottom grid */
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card h4{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+
+/* Feature rows */
+.feat-row{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.feat-row:last-child{border-bottom:none}
+.feat-name{color:var(--muted);width:130px;flex-shrink:0;font-size:12px}
+.feat-bar-wrap{flex:1;margin:0 10px;height:5px;background:var(--surface);border-radius:3px;overflow:hidden}
+.feat-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s}
+.feat-val{font-weight:600;font-size:13px;width:60px;text-align:right;flex-shrink:0}
+.feat-interp{font-size:10px;color:var(--muted);width:100px;text-align:right;flex-shrink:0;margin-left:6px}
+
+/* Timing */
+.timing-row{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.timing-row:last-child{border-bottom:none}
+.timing-ms{font-weight:600;color:var(--accent)}
+.device-pill{display:inline-flex;align-items:center;gap:5px;
+  background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);
+  color:var(--success);font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:20px;margin-top:10px}
+
+/* Disc measurements */
+.meas-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.meas-item{background:var(--surface);border-radius:8px;padding:10px 12px}
+.meas-item .ml{font-size:11px;color:var(--muted)}
+.meas-item .mv{font-size:18px;font-weight:700;color:var(--text)}
+
+@media(max-width:700px){
+  .img-strip,.bottom-grid{grid-template-columns:1fr}
+  .risk-card{flex-direction:column;text-align:center}
+  .pipeline{flex-wrap:wrap}
+  .pipe-step{min-width:80px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">👁</div>
+  <h1>Glauco<span>Scan</span> <span style="font-weight:300;color:var(--muted)">v2</span></h1>
+  <div class="hbadge">RE-GAN · DRISHTI-GS</div>
+</header>
+
+<main>
+  <div class="hero">
+    <h2>Fundus Image Preprocessing &<br>Clinical Feature Extraction System</h2>
+    <p>Upload a retinal fundus image to preprocess, enhance with RE-GAN deep learning, extract clinical biomarkers, and download a full PDF report.</p>
+  </div>
+
+  <!-- Pipeline visual -->
+  <div class="pipeline">
+    <div class="pipe-step"><div class="num">1</div><div class="label">Green Channel</div></div>
+    <div class="pipe-step"><div class="num">2</div><div class="label">BG Normalisation</div><span class="tag tag-novel">Novel</span></div>
+    <div class="pipe-step"><div class="num">3</div><div class="label">CLAHE</div></div>
+    <div class="pipe-step"><div class="num">4</div><div class="label">Denoising</div></div>
+    <div class="pipe-step"><div class="num">5</div><div class="label">Gamma Correction</div></div>
+    <div class="pipe-step"><div class="num">6</div><div class="label">RE-GAN</div><span class="tag tag-dl">Deep Learning</span></div>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="drop-zone">
+    <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.tiff"/>
+    <div class="icon">🔬</div>
+    <h3>Drop fundus image here</h3>
+    <p>or click to browse</p>
+    <div class="fmts"><span>PNG</span><span>JPG</span><span>BMP</span><span>TIFF</span></div>
+  </div>
+
+  <div id="preview-wrap">
+    <img id="preview-img" src="" alt="Preview"/>
+    <p id="preview-name"></p>
+  </div>
+
+  <div id="error-box"></div>
+  <button id="analyze-btn" disabled>🔬 Analyze & Generate Report</button>
+
+  <!-- Progress -->
+  <div id="progress-wrap">
+    <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="steps">
+      <div class="step" id="step-1"><div class="dot"></div>Classical preprocessing</div>
+      <div class="step" id="step-2"><div class="dot"></div>RE-GAN enhancement</div>
+      <div class="step" id="step-3"><div class="dot"></div>Feature extraction</div>
+      <div class="step" id="step-4"><div class="dot"></div>Generating PDF report</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Images -->
+    <p class="sec-label">Preprocessing comparison</p>
+    <div class="img-strip">
+      <div class="img-card">
+        <img id="r-orig" src="" alt="Original"/>
+        <div class="img-foot"><span>Original</span><span class="itag t-raw">RAW</span></div>
+      </div>
+      <div class="img-card">
+        <img id="r-classical" src="" alt="Classical"/>
+        <div class="img-foot"><span>Classical pipeline</span><span class="itag t-cls">STAGES 1–5</span></div>
+      </div>
+      <div class="img-card">
+        <img id="r-enhanced" src="" alt="Enhanced"/>
+        <div class="img-foot"><span>RE-GAN enhanced</span><span class="itag t-dl">DEEP LEARNING</span></div>
+      </div>
+    </div>
+
+    <!-- Risk + PDF download -->
+    <p class="sec-label">Glaucoma risk assessment</p>
+    <div class="risk-card" id="risk-card">
+      <div class="risk-icon" id="risk-icon"></div>
+      <div class="risk-info">
+        <h3 id="risk-label-text"></h3>
+        <p id="risk-desc-text"></p>
+      </div>
+      <div class="risk-right">
+        <div class="risk-prob">
+          <div class="num" id="risk-num"></div>
+          <div class="lbl">Glaucoma<br>probability</div>
+        </div>
+        <a id="pdf-btn" href="#" class="pdf-btn" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
+          </svg>
+          Download PDF Report
+        </a>
+      </div>
+    </div>
+
+    <!-- Bottom grid -->
+    <div class="bottom-grid">
+
+      <!-- Features -->
+      <div class="card">
+        <h4>📊 Extracted Clinical Features</h4>
+        <div class="feat-row">
+          <span class="feat-name">Vertical CDR</span>
+          <div class="feat-bar-wrap"><div class="feat-bar" id="bar-vcdr"></div></div>
+          <span class="feat-val" id="val-vcdr"></span>
+          <span class="feat-interp" id="int-vcdr"></span>
+        </div>
+        <div class="feat-row">
+          <span class="feat-name">Horizontal CDR</span>
+          <div class="feat-bar-wrap"><div class="feat-bar" id="bar-hcdr"></div></div>
+          <span class="feat-val" id="val-hcdr"></span>
+          <span class="feat-interp" id="int-hcdr"></span>
+        </div>
+        <div class="feat-row">
+          <span class="feat-name">Rim-Disc Area Ratio</span>
+          <div class="feat-bar-wrap"><div class="feat-bar" id="bar-rdar"></div></div>
+          <span class="feat-val" id="val-rdar"></span>
+          <span class="feat-interp" id="int-rdar"></span>
+        </div>
+        <div class="feat-row">
+          <span class="feat-name">ISNT Score</span>
+          <div class="feat-bar-wrap"><div class="feat-bar" id="bar-isnt"></div></div>
+          <span class="feat-val" id="val-isnt"></span>
+          <span class="feat-interp" id="int-isnt"></span>
+        </div>
+        <div class="feat-row">
+          <span class="feat-name">Vessel Density</span>
+          <div class="feat-bar-wrap"><div class="feat-bar" id="bar-vd"></div></div>
+          <span class="feat-val" id="val-vd"></span>
+          <span class="feat-interp" id="int-vd"></span>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Disc measurements -->
+        <div class="card">
+          <h4>🎯 Optic Disc Measurements</h4>
+          <div class="meas-grid">
+            <div class="meas-item"><div class="ml">Disc Height</div><div class="mv" id="m-dh">—</div></div>
+            <div class="meas-item"><div class="ml">Disc Width</div><div class="mv" id="m-dw">—</div></div>
+            <div class="meas-item"><div class="ml">Cup Height</div><div class="mv" id="m-ch">—</div></div>
+            <div class="meas-item"><div class="ml">Cup Width</div><div class="mv" id="m-cw">—</div></div>
+          </div>
+        </div>
+
+        <!-- Timing -->
+        <div class="card">
+          <h4>⚡ Processing Details</h4>
+          <div class="timing-row"><span>Classical (Stages 1–5)</span><span class="timing-ms" id="t-cl"></span></div>
+          <div class="timing-row"><span>RE-GAN enhancement</span><span class="timing-ms" id="t-en"></span></div>
+          <div class="timing-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:12px">
+            <span style="font-weight:600">Total pipeline</span>
+            <span class="timing-ms" id="t-tot"></span>
+          </div>
+          <div class="device-pill" id="dev-pill"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const dropZone=document.getElementById('drop-zone'),fileInput=document.getElementById('file-input');
+const btn=document.getElementById('analyze-btn'),prevWrap=document.getElementById('preview-wrap');
+const prevImg=document.getElementById('preview-img'),prevName=document.getElementById('preview-name');
+const errBox=document.getElementById('error-box'),progWrap=document.getElementById('progress-wrap');
+const progFill=document.getElementById('prog-fill'),results=document.getElementById('results');
+let currentFile=null;
+
+['dragenter','dragover'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.add('drag')}));
+['dragleave','drop'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.remove('drag')}));
+dropZone.addEventListener('drop',ev=>setFile(ev.dataTransfer.files[0]));
+fileInput.addEventListener('change',()=>setFile(fileInput.files[0]));
+
+function setFile(f){
+  if(!f)return; currentFile=f;
+  prevImg.src=URL.createObjectURL(f);
+  prevName.textContent=f.name+' — '+(f.size/1024).toFixed(1)+' KB';
+  prevWrap.style.display='block';
+  btn.disabled=false; errBox.style.display='none'; results.style.display='none';
+}
+function setStep(n){
+  const pct=[0,25,60,85,100];
+  progFill.style.width=pct[n]+'%';
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById('step-'+i);
+    el.classList.remove('active','done');
+    if(i<n)el.classList.add('done');
+    if(i===n)el.classList.add('active');
+  }
+}
+
+btn.addEventListener('click',async()=>{
+  if(!currentFile)return;
+  btn.disabled=true; errBox.style.display='none';
+  results.style.display='none'; progWrap.style.display='block'; setStep(1);
+  let si=0;
+  const st=setInterval(()=>{si=Math.min(si+1,3);setStep(si+1);},1200);
+  const fd=new FormData(); fd.append('image',currentFile);
+  try{
+    const res=await fetch('/analyze',{method:'POST',body:fd});
+    const d=await res.json(); clearInterval(st);
+    if(!res.ok){showErr(d.error||'Server error');btn.disabled=false;return;}
+    setStep(4); setTimeout(()=>showResults(d),500);
+  }catch(e){clearInterval(st);showErr('Cannot reach server. Make sure Flask is running.');}
+  btn.disabled=false;
+});
+
+function showErr(m){errBox.textContent='⚠ '+m;errBox.style.display='block';progWrap.style.display='none';}
+
+function cdrInterp(v){if(v<0.45)return 'Normal';if(v<0.65)return 'Borderline';return 'Elevated';}
+function rdarInterp(v){if(v>0.55)return 'Normal';if(v>0.35)return 'Borderline';return 'Rim loss';}
+function isntInterp(v){return{3:'Normal',2:'Minor viol.',1:'Moderate',0:'Violated'}[v]||'';}
+function vdInterp(v){if(v>0.12)return 'Normal';if(v>0.08)return 'Mildly low';return 'Reduced';}
+
+function setFeat(id,val,max,interp){
+  document.getElementById('val-'+id).textContent=val;
+  document.getElementById('bar-'+id).style.width=Math.min(100,(parseFloat(val)/max)*100)+'%';
+  if(document.getElementById('int-'+id))
+    document.getElementById('int-'+id).textContent=interp;
+}
+
+function showResults(d){
+  progWrap.style.display='none';
+  document.getElementById('r-orig').src=d.orig_img;
+  document.getElementById('r-classical').src=d.classical_img;
+  document.getElementById('r-enhanced').src=d.enhanced_img;
+
+  // Risk
+  const card=document.getElementById('risk-card');
+  card.style.borderColor=d.risk_color; card.style.background=d.risk_color+'18';
+  document.getElementById('risk-icon').textContent=d.risk_icon;
+  document.getElementById('risk-label-text').textContent=d.risk_label;
+  document.getElementById('risk-label-text').style.color=d.risk_color;
+  document.getElementById('risk-num').textContent=d.glaucoma_prob+'%';
+  document.getElementById('risk-num').style.color=d.risk_color;
+  document.getElementById('risk-desc-text').textContent=d.risk_desc;
+
+  // PDF button
+  if(d.report_url){
+    const pb=document.getElementById('pdf-btn');
+    pb.href=d.report_url; pb.style.display='flex';
+  }
+
+  // Features
+  const f=d.features;
+  setFeat('vcdr',f.vCDR,1.0,cdrInterp(f.vCDR));
+  setFeat('hcdr',f.hCDR,1.0,cdrInterp(f.hCDR));
+  setFeat('rdar',f.RDAR,1.0,rdarInterp(f.RDAR));
+  setFeat('isnt',f.ISNT+' / 3',3,isntInterp(f.ISNT));
+  setFeat('vd',(f.vessel_density*100).toFixed(2)+'%',25,vdInterp(f.vessel_density));
+
+  // Disc measurements
+  document.getElementById('m-dh').textContent=f.disc_H+'px';
+  document.getElementById('m-dw').textContent=f.disc_W+'px';
+  document.getElementById('m-ch').textContent=f.cup_H+'px';
+  document.getElementById('m-cw').textContent=f.cup_W+'px';
+
+  // Timing
+  const total=d.t_classical+d.t_enhance;
+  document.getElementById('t-cl').textContent=d.t_classical+' ms';
+  document.getElementById('t-en').textContent=d.t_enhance+' ms';
+  document.getElementById('t-tot').textContent=total.toFixed(1)+' ms';
+  const gpu=d.device.toLowerCase().includes('cuda');
+  const dp=document.getElementById('dev-pill');
+  dp.textContent=(gpu?'⚡ GPU — ':'💻 CPU — ')+d.device;
+
+  results.style.display='block';
+  results.scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>
